@@ -1,0 +1,4 @@
+[submodule "zhanbei1-agentsdk-go"]
+	path = zhanbei1-agentsdk-go
+	url = https://github.com/vicleung01/agentsdk-go.git
+	branch = feature/v2-runtime
