@@ -113,7 +113,7 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
-replace github.com/stellarlinkco/agentsdk-go => github.com/zhanbei1/agentsdk-go v1.0.11
+replace github.com/stellarlinkco/agentsdk-go => ../zhanbei1-agentsdk-go
 
 // 使用 zhanbei1 fork（含扫码创建机器人 HTTP 与 aibot 包，module 路径仍为 go-sphere）
 replace github.com/go-sphere/wecom-aibot-go-sdk => github.com/zhanbei1/wecom-aibot-go-sdk v0.0.2

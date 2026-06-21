@@ -132,6 +132,17 @@ func New(ctx context.Context, opts Options) (*Runtime, error) {
 	if skillsOnly {
 		apiOpts.SkillsOnly = true
 	}
+	// v2 runtime toggle: enable via OPENOCTA_RUNTIME_V2=true env var.
+	// When enabled, the agent loop uses the state-machine runtime (runLoopV2)
+	// with Snip compression, circuit breaker, stream fallback, and max_tokens recovery.
+	// Rollback: unset the env var and restart.
+	env := opts.Env
+	if env == nil {
+		env = os.Getenv
+	}
+	if strings.EqualFold(strings.TrimSpace(env("OPENOCTA_RUNTIME_V2")), "true") {
+		apiOpts.UseV2Runtime = true
+	}
 	// 添加环境变量：1) 写入 SettingsOverrides.Env 供 hooks/settings 使用；2) 写入进程环境供 bash 等工具继承
 	if opts.Config != nil && opts.Config.Env != nil && len(opts.Config.Env.Vars) > 0 {
 		apiOpts.SettingsOverrides.Env = opts.Config.Env.Vars
@@ -324,6 +335,11 @@ func New(ctx context.Context, opts Options) (*Runtime, error) {
 			AutoAllowSandboxBash: enableSandbox,
 		}))
 	}
+
+	// SQL Guard: intercepts dangerous SQL (DROP/ALTER/TRUNCATE/DELETE without WHERE)
+	// in MCP tool arguments. Closes the security gap where MCP tools bypass
+	// command_policy + approval queue + SQL validation layers.
+	mw = append(mw, mcpSQLGuardMiddleware())
 
 	// Browser navigation deduplication: prevents LLM from repeatedly opening
 	// the same URL within a short window during multi-step UI automation.

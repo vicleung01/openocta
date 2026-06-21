@@ -151,43 +151,68 @@ func (r *SwarmGatewayRunner) Run(ctx context.Context, agentID, sessionKey, messa
 	}
 
 	var lastText strings.Builder
-	for ev := range eventChan {
-		switch ev.Type {
-		case api.EventContentBlockDelta:
-			if ev.Delta != nil && ev.Delta.Text != "" {
-				lastText.WriteString(ev.Delta.Text)
-				if onDelta != nil {
-					onDelta("assistant", map[string]interface{}{"text": ev.Delta.Text})
-				}
+	streamPanicked := false
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				streamPanicked = true
 			}
-		case api.EventContentBlockStart:
-			if onDelta != nil && ev.ContentBlock != nil && ev.ContentBlock.Type == "tool_use" {
-				onDelta("tool_call", map[string]interface{}{
-					"toolCallId": ev.ContentBlock.ID,
-					"name":       ev.ContentBlock.Name,
-					"arguments":  ev.ContentBlock.Input,
-				})
-			}
-		case api.EventToolExecutionResult:
-			if onDelta != nil {
-				isErr := ev.IsError != nil && *ev.IsError
-				outputStr := ""
-				if ev.Output != nil {
-					if s, ok := ev.Output.(string); ok {
-						outputStr = s
-					} else {
-						b, _ := json.Marshal(ev.Output)
-						outputStr = string(b)
+		}()
+		for ev := range eventChan {
+			switch ev.Type {
+			case api.EventContentBlockDelta:
+				if ev.Delta != nil && ev.Delta.Text != "" {
+					lastText.WriteString(ev.Delta.Text)
+					if onDelta != nil {
+						onDelta("assistant", map[string]interface{}{"text": ev.Delta.Text})
 					}
 				}
-				onDelta("tool_result", map[string]interface{}{
-					"toolCallId": ev.ToolUseID,
-					"toolName":   ev.Name,
-					"content":    outputStr,
-					"isError":    isErr,
-				})
+			case api.EventContentBlockStart:
+				if onDelta != nil && ev.ContentBlock != nil && ev.ContentBlock.Type == "tool_use" {
+					onDelta("tool_call", map[string]interface{}{
+						"toolCallId": ev.ContentBlock.ID,
+						"name":       ev.ContentBlock.Name,
+						"arguments":  ev.ContentBlock.Input,
+					})
+				}
+			case api.EventToolExecutionResult:
+				if onDelta != nil {
+					isErr := ev.IsError != nil && *ev.IsError
+					outputStr := ""
+					if ev.Output != nil {
+						if s, ok := ev.Output.(string); ok {
+							outputStr = s
+						} else {
+							b, _ := json.Marshal(ev.Output)
+							outputStr = string(b)
+						}
+					}
+					onDelta("tool_result", map[string]interface{}{
+						"toolCallId": ev.ToolUseID,
+						"toolName":   ev.Name,
+						"content":    outputStr,
+						"isError":    isErr,
+					})
+				}
 			}
 		}
+	}()
+	if streamPanicked {
+		// Streaming panicked (send on closed channel), fall back to non-streaming
+		resp, runErr := rt.Run(ctx, api.Request{Prompt: prompt, SessionID: sessionKey})
+		if runErr != nil {
+			return "", runErr
+		}
+		out := ""
+		if resp != nil && resp.Result != nil {
+			out = resp.Result.Output
+		}
+		if onDelta != nil && out != "" {
+			onDelta("assistant", map[string]interface{}{"text": out})
+		}
+		ensureSwarmSessionEntry(gw, sessionKey, employeeID, "")
+		appendSwarmChatTranscript(gw, sessionKey, agentID, "", out)
+		return out, nil
 	}
 	out := strings.TrimSpace(lastText.String())
 	ensureSwarmSessionEntry(gw, sessionKey, employeeID, "")

@@ -1888,6 +1888,7 @@ func ChatSendHandler(opts HandlerOpts) error {
 		}
 
 		go func() {
+			var textBuf strings.Builder // Declared before defers so recover can broadcast accumulated text
 			ctxForBroadcast := opts.Context // Capture context for broadcast
 			deliverForGoroutine := deliverCtx
 			defer func() {
@@ -1908,6 +1909,14 @@ func ChatSendHandler(opts HandlerOpts) error {
 						errMsg += fmt.Sprintf("%v", r)
 					}
 					appendErrorToTranscript(transcriptPath, errMsg, runId, sessionKey, ctxForBroadcast)
+					// Broadcast whatever text was accumulated before the panic
+					if finalText := strings.TrimSpace(textBuf.String()); finalText != "" {
+						broadcastChatFinal(ctxForBroadcast, runId, sessionKey, map[string]interface{}{
+							"role":    "assistant",
+							"content": []map[string]interface{}{{"type": "text", "text": finalText}},
+							"timestamp": time.Now().UnixMilli(),
+						})
+					}
 				}
 			}()
 
@@ -2312,7 +2321,6 @@ func ChatSendHandler(opts HandlerOpts) error {
 			}
 
 			// Stream events: broadcast agent events and append to sessionFile (transcript)
-			var textBuf strings.Builder
 			var assistantContent []map[string]interface{}
 			var lastMessageID string
 			var usageSnapshot *api.Usage
