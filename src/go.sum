@@ -265,8 +265,6 @@ github.com/ysmood/leakless v0.9.0/go.mod h1:R8iAXPRaG97QJwqxs74RdwzcRHT1SWCGTNqY
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
-github.com/zhanbei1/agentsdk-go v1.0.11 h1:bFmHJjP6lofmYeNHt1L+ZaF0mGoPcp5rKhCs4QydLRw=
-github.com/zhanbei1/agentsdk-go v1.0.11/go.mod h1:a3CLWiprNe3ny3+9TfsIoGbG3aZtOX2IgQcX6JHYh0Y=
 github.com/zhanbei1/wecom-aibot-go-sdk v0.0.2 h1:G6CwRijk4p+3+gmvWwg1juBr+89CO3PMKSrrM1JFGlc=
 github.com/zhanbei1/wecom-aibot-go-sdk v0.0.2/go.mod h1:Ll6l0a8eyas5cbYRAyKBlai79z+WpBSWCS+/+IL5nDc=
 go.etcd.io/bbolt v1.4.0 h1:TU77id3TnN/zKr7CO/uk+fBCwF2jGcMuw2B/FMAzYIk=

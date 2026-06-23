@@ -341,6 +341,12 @@ func New(ctx context.Context, opts Options) (*Runtime, error) {
 	// command_policy + approval queue + SQL validation layers.
 	mw = append(mw, mcpSQLGuardMiddleware())
 
+	// DB Auth Guard: 基于 CMDB 运维组的数据库访问鉴权。
+	// userContextMiddleware(BeforeAgent)从 sessionKey 解析 caller_user;
+	// dbAuthGuardMiddleware(BeforeTool)拦 db 工具→调 cmdb-auth :8942 判定。
+	// 模式由 env OPENOCTA_DB_AUTH_MODE 控制(off/audit/block),默认 off 不生效。
+	mw = append(mw, userContextMiddleware(), dbAuthGuardMiddleware())
+
 	// Browser navigation deduplication: prevents LLM from repeatedly opening
 	// the same URL within a short window during multi-step UI automation.
 	mw = append(mw, newBrowserDedupMiddleware(0))
